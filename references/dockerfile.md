@@ -48,6 +48,26 @@ Place these in the environment section alongside `HOME`, `PATH`, etc.
 5. Runtime configuration (git, SSH)
 6. Non-root user creation (for `remoteUser` + `updateRemoteUserUID`)
 
+## System packages (always include)
+
+Every devcontainer's base apt/apk install MUST include `wl-clipboard`. Claude Code's image-paste workflow on a Wayland host writes pasted images into `~/.claude/paste-cache`, which is bind-mounted into the container; `wl-clipboard` provides the `wl-paste`/`wl-copy` binaries that downstream tooling and user shell aliases expect to find on `PATH`. Omitting it breaks image-paste in any container the user opens with an IDE attached to a Wayland session.
+
+Minimal Debian/Ubuntu example:
+
+```dockerfile
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        git \
+        jq \
+        openssh-client \
+        wl-clipboard \
+    && rm -rf /var/lib/apt/lists/*
+```
+
+For Alpine bases use `apk add --no-cache wl-clipboard`. This rule applies to every new devcontainer regardless of language ecosystem — do not skip it even for "minimal" images.
+
 ## Docker CLI + Compose (optional)
 
 When the project needs Docker access inside the devcontainer (detected in Phase 1), install the Docker CLI tools from Docker's official APT repo. See [docker-support.md](docker-support.md) for the full Dockerfile layer, detection signals, and entrypoint GID handling.

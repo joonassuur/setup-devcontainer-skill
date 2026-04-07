@@ -42,6 +42,14 @@ dev-shell *args:
         -e COLORTERM="${COLORTERM:-}"
         -e DEVCONTAINER_WORKSPACE="$(pwd)"
     )
+    # Wayland clipboard (for pasting images into Claude Code) — REQUIRED on Wayland hosts
+    if [[ -n "${WAYLAND_DISPLAY:-}" ]] && [[ -S "${XDG_RUNTIME_DIR:-}/${WAYLAND_DISPLAY}" ]]; then
+        run_args+=(
+            -v "${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}:${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}"
+            -e WAYLAND_DISPLAY="${WAYLAND_DISPLAY}"
+            -e XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}"
+        )
+    fi
     # Firewalled mode: iptables egress filter + run as root then drop privileges via gosu
     # Normal mode: run directly as host UID (no firewall, no caps)
     if [[ "${1:-}" = "--firewall" ]]; then
@@ -84,3 +92,4 @@ dev-shell *args:
 - **`--firewall` flag** — opt-in firewall mode. Without it, the container runs as the host UID with full internet access (normal development). With it, the container starts as root with `NET_ADMIN`/`NET_RAW`, the entrypoint runs the firewall, then drops to the host UID via `gosu`. Usage: `just dev-shell --firewall claude` for firewalled autonomous mode.
 - **`DEVCONTAINER_WORKSPACE`** — passed to the entrypoint so it knows which directory to `stat` for workspace owner inference. Redundant in normal mode (the entrypoint doesn't need it when not root), but consistent with devcontainer.json's `containerEnv` and useful if the recipe is adapted for root-based modes.
 - **Docker socket mount** — conditional on socket existence (`-S /var/run/docker.sock`). Uses `--group-add` to add the host Docker GID as a supplementary group. Works with both `--user` (normal mode) and root+gosu (firewall mode). Only added when Docker support is enabled.
+- **Wayland clipboard mount** — bind-mounts `$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY` and forwards `WAYLAND_DISPLAY`/`XDG_RUNTIME_DIR`. Required so `wl-paste` inside the container can read the host Wayland clipboard — without it, Claude Code's image-paste shows "No image found in clipboard" even though `wl-clipboard` is installed in the image. Conditional on the env vars being set, so it's a no-op on X11 or non-Wayland CI hosts.
