@@ -1,5 +1,19 @@
 # setup-devcontainer
 
+> **Personal fork** of [lx-industries/setup-devcontainer-skill](https://gitlab.com/lx-industries/setup-devcontainer-skill).
+> Tracks upstream via the `upstream` remote; local edits live on `main`.
+
+## Fork additions on top of upstream
+
+- **Wayland clipboard rule for image-paste** — generated devcontainers now require **both** halves of the host-clipboard pipeline so Claude Code's image-paste flow actually works on Wayland hosts (Niri, Hyprland, Sway, GNOME, KDE):
+  - **Dockerfile** must install `wl-clipboard` in the system packages layer (`references/dockerfile.md` → "System packages (always include)" section). This puts `wl-paste`/`wl-copy` on `PATH` inside the container.
+  - **Task-runner recipe** must conditionally bind-mount `$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY` and forward `WAYLAND_DISPLAY` + `XDG_RUNTIME_DIR` (`references/task-runner.md` → "Wayland clipboard mount" key design point). Without the socket, `wl-paste` runs but has nothing to talk to and Claude Code reports `"No image found in clipboard"` even though the package is installed.
+  - The task-runner block is guarded by `[[ -n "${WAYLAND_DISPLAY:-}" ]]`, so it's a no-op on X11 / non-Wayland CI hosts — safe to keep in shared task runners.
+
+Everything below this section is unchanged from upstream.
+
+---
+
 An [Agent Skill](https://agentskills.io) that generates hardened `.devcontainer/` setups for [Claude Code](https://claude.ai/code) autonomous mode and IDE use (VS Code, JetBrains, DevPod, devcontainer CLI).
 
 ## What it does
