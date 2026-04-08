@@ -73,6 +73,7 @@ Key principles:
 - `ENV HOME` and `ENV PATH` set **before** any tool installs
 - Never set `WORKDIR` (worktree compatibility)
 - `chmod 1777` not `chmod 777`
+- Always pre-install Playwright Chromium/Chrome (required by the global Playwright MCP server, regardless of project language) — see [references/dockerfile.md](references/dockerfile.md) "Playwright browsers (always include)"
 
 If Docker support was enabled in Phase 1, also add the Docker CLI layer and `/etc/group` writable. See [references/docker-support.md](references/docker-support.md) for the Dockerfile additions and entrypoint GID handling.
 

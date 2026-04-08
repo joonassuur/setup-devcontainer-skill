@@ -68,6 +68,49 @@ RUN apt-get update \
 
 For Alpine bases use `apk add --no-cache wl-clipboard`. This rule applies to every new devcontainer regardless of language ecosystem — do not skip it even for "minimal" images.
 
+## Playwright browsers (always include)
+
+Claude Code's global MCP config includes the Playwright MCP server, which at runtime launches a real Chromium/Chrome. If the browser is not pre-installed in the image, every Playwright MCP call fails with:
+
+```
+server: Chromium distribution 'chrome' is not found at /opt/google/chrome/chrome
+Run "npx playwright install chrome"
+```
+
+Pre-install the browsers at image build time so the MCP server works out-of-the-box:
+
+```dockerfile
+# Playwright pre-installed browsers location
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
+
+# -- Playwright browsers (pre-install for MCP server) ------------------------
+# Override NPM_CONFIG_IGNORE_SCRIPTS for browser download
+RUN NPM_CONFIG_IGNORE_SCRIPTS=false npx playwright install --with-deps chromium chrome \
+    && chmod -R 1777 ${PLAYWRIGHT_BROWSERS_PATH}
+```
+
+Place the `ENV` alongside the other early environment variables (`HOME`, `PATH`, NPM hardening) and the `RUN` step after any Node.js install and before the Claude Code install.
+
+**Node.js requirement:** this step needs `npx`, so the image must have Node.js installed. For Node-based projects the base image already provides it. For non-Node projects (Java, Python, Rust, Go, etc.), install Node.js first via a Node install layer, e.g.:
+
+```dockerfile
+# -- Node.js 20 ---------------------------------------------------------------
+# renovate: datasource=node-version depName=node
+ARG NODE_MAJOR=20
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/* \
+    && node --version && npm --version
+```
+
+The `--with-deps` flag installs system libraries Chromium needs (fonts, audio, X11 libs). `NPM_CONFIG_IGNORE_SCRIPTS=false` is required for this one command — Playwright's browser download is implemented as a postinstall-style script, which is blocked by the supply-chain hardening default.
+
+The `chmod -R 1777 ${PLAYWRIGHT_BROWSERS_PATH}` mirrors the `/tmp/home` sticky-bit rule — browsers land in a world-readable path so any container UID (remapped by `updateRemoteUserUID`) can execute them.
+
+**Firewall impact:** the download happens at build time, not runtime, so the Phase 5 firewall is irrelevant for Playwright itself. At runtime the firewall only affects what URLs the launched browser can reach.
+
+This rule applies to every new devcontainer regardless of language ecosystem — do not skip it even for projects that "don't need browser automation," because Playwright MCP is a global Claude Code tool, not a per-project dependency.
+
 ## Docker CLI + Compose (optional)
 
 When the project needs Docker access inside the devcontainer (detected in Phase 1), install the Docker CLI tools from Docker's official APT repo. See [docker-support.md](docker-support.md) for the full Dockerfile layer, detection signals, and entrypoint GID handling.
