@@ -73,7 +73,7 @@ Key principles:
 - `ENV HOME` and `ENV PATH` set **before** any tool installs
 - Never set `WORKDIR` (worktree compatibility)
 - `chmod 1777` not `chmod 777`
-- Always pre-install Playwright Chromium/Chrome (required by the global Playwright MCP server, regardless of project language) — see [references/dockerfile.md](references/dockerfile.md) "Playwright browsers (always include)"
+- Always pre-install the Playwright CLI (`@playwright/cli`) and Chromium/Chrome browsers, regardless of project language — required by the global Playwright MCP server AND the global `playwright-cli` skill which the user prefers over the MCP. See [references/dockerfile.md](references/dockerfile.md) "Playwright CLI and browsers (always include)"
 
 If Docker support was enabled in Phase 1, also add the Docker CLI layer and `/etc/group` writable. See [references/docker-support.md](references/docker-support.md) for the Dockerfile additions and entrypoint GID handling.
 
@@ -163,6 +163,8 @@ Run verifications inside the built container using the task runner recipe from P
 - [ ] Forge CLI authenticates with mounted config
 - [ ] `claude --version` works with mounted config
 - [ ] `claude plugin list` shows all plugins enabled (Path A only)
+- [ ] `playwright-cli --version` works (global `@playwright/cli` on `$PATH`)
+- [ ] `playwright-cli open about:blank` then `playwright-cli close-all` succeeds (browsers pre-installed and reachable)
 - [ ] Any project-specific build commands succeed
 
 **Docker verification (Docker support only):**
