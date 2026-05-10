@@ -70,10 +70,7 @@ For Alpine bases use `apk add --no-cache wl-clipboard`. This rule applies to eve
 
 ## Playwright CLI and browsers (always include)
 
-Two reasons this is mandatory for every devcontainer, regardless of project language:
-
-1. **Playwright MCP server** — Claude Code's global MCP config launches a real Chromium/Chrome at runtime. Without a pre-installed browser, the first call fails with `server: Chromium distribution 'chrome' is not found at /opt/google/chrome/chrome — Run "npx playwright install chrome"`.
-2. **`playwright-cli` skill** — the user's global Claude Code config defaults to the Playwright CLI (`playwright-cli` / `npx playwright-cli`) over the MCP for browser automation. The skill expects the `@playwright/cli` package to be available; without it, every invocation pays a cold `npx` download (and fails entirely under the Phase 5 firewall, since the npm registry is not reachable at runtime).
+Mandatory for every devcontainer, regardless of project language: the user's global Claude Code config uses the `playwright-cli` skill (`playwright-cli` / `npx playwright-cli`) for browser automation. The skill expects the `@playwright/cli` package to be available; without it, every invocation pays a cold `npx` download (and fails entirely under the Phase 5 firewall, since the npm registry is not reachable at runtime). Without a pre-installed browser, the first call fails with `Chromium distribution 'chrome' is not found at /opt/google/chrome/chrome — Run "npx playwright install chrome"`.
 
 Pre-install both the CLI and the browsers at image build time:
 
@@ -81,7 +78,7 @@ Pre-install both the CLI and the browsers at image build time:
 # Playwright pre-installed browsers location
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
 
-# -- Playwright CLI + browsers (pre-install for MCP server and playwright-cli skill) --
+# -- Playwright CLI + browsers (pre-install for playwright-cli skill) --
 # Override NPM_CONFIG_IGNORE_SCRIPTS for the global install and browser download
 RUN NPM_CONFIG_IGNORE_SCRIPTS=false npm install -g @playwright/cli@latest \
     && NPM_CONFIG_IGNORE_SCRIPTS=false npx playwright install --with-deps chromium chrome \
@@ -109,7 +106,7 @@ The `chmod -R 1777 ${PLAYWRIGHT_BROWSERS_PATH}` mirrors the `/tmp/home` sticky-b
 
 **Firewall impact:** both the CLI install and the browser download happen at build time, not runtime, so the Phase 5 firewall is irrelevant for Playwright setup itself. At runtime the firewall only affects what URLs the launched browser can reach. (Without the build-time install, the runtime `npx playwright-cli` fallback would fail under the firewall because `registry.npmjs.org` is reachable but the browser CDN may not be.)
 
-This rule applies to every new devcontainer regardless of language ecosystem — do not skip it even for projects that "don't need browser automation," because both the Playwright MCP server and the `playwright-cli` skill are global Claude Code tools, not per-project dependencies.
+This rule applies to every new devcontainer regardless of language ecosystem — do not skip it even for projects that "don't need browser automation," because the `playwright-cli` skill is a global Claude Code tool, not a per-project dependency.
 
 ## Docker CLI + Compose (optional)
 
