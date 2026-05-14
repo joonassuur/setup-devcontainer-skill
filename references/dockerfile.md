@@ -68,6 +68,23 @@ RUN apt-get update \
 
 For Alpine bases use `apk add --no-cache wl-clipboard`. This rule applies to every new devcontainer regardless of language ecosystem — do not skip it even for "minimal" images.
 
+## just (always include)
+
+Mandatory for every devcontainer, regardless of project language: most workspaces in this user's ecosystem use a top-level `justfile` to start the app stack (`just up`, `just dev`, etc.). Without `just` on `PATH` inside the container, the user's "one command to start everything" workflow breaks the moment they shell in. Even projects without a justfile today often gain one later, and a Renovate-tracked `just` is cheap (single static binary).
+
+```dockerfile
+# -- just (workspace task runner) --------------------------------------------
+# renovate: datasource=github-releases depName=casey/just
+ARG JUST_VERSION="1.51.0"
+RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh \
+        | bash -s -- --tag "${JUST_VERSION}" --to /usr/local/bin \
+    && just --version
+```
+
+Place the layer alongside the other versioned tool installs (after the Node.js / language toolchain layer, before the Claude Code install). The binary lands in `/usr/local/bin/just` so any UID can execute it; no `chmod` needed.
+
+This rule applies even to projects without an existing justfile — `just` is a global devcontainer tool in this user's ecosystem, not a per-project dependency.
+
 ## Playwright CLI and browsers (always include)
 
 Mandatory for every devcontainer, regardless of project language: the user's global Claude Code config uses the `playwright-cli` skill (`playwright-cli` / `npx playwright-cli`) for browser automation. The skill expects the `@playwright/cli` package to be available; without it, every invocation pays a cold `npx` download (and fails entirely under the Phase 5 firewall, since the npm registry is not reachable at runtime). Without a pre-installed browser, the first call fails with `Chromium distribution 'chrome' is not found at /opt/google/chrome/chrome — Run "npx playwright install chrome"`.

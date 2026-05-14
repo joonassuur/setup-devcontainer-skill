@@ -43,6 +43,7 @@
 | Using standalone `docker-compose` (v1) | Install `docker-compose-plugin` (v2) — runs as `docker compose` subcommand |
 | Mounting Docker socket unconditionally in task runner | Check `-S /var/run/docker.sock` first — socket may not exist on all hosts |
 | Not scanning compose/Dockerfiles for registries | Firewall silently blocks unlisted registries — scan `FROM` and `image:` for additional domains |
+| Skipping `just` install because the project has no justfile | Pre-install `just` anyway — the user's workspaces standardize on `just up`/`just dev`, and a missing binary breaks the workflow the moment one is added |
 
 ## Red Flags
 
